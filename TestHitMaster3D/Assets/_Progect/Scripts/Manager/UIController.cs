@@ -36,7 +36,7 @@ public class UIController : MonoBehaviour
     }
     private void OnDestroy()
     {
-        ServiceLocator.GetService<EnemyManager>().OnStateChange -= UpdateEnemy;
+        //ServiceLocator.GetService<EnemyManager>().OnStateChange -= UpdateEnemy;
         GameController.Instance.OnStateChange -= UpdateUI;
         loader.OnStateChange -= UpdateLevel;
     }
