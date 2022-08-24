@@ -7,8 +7,6 @@ using UnityEngine;
 
 public class LevelManager : MonoBehaviour
 {
-    public int Level = 1;
-
     [SerializeField] private bool _start = true;
 
     [SerializeField] private EnemyManager _enemyManager;
@@ -16,6 +14,8 @@ public class LevelManager : MonoBehaviour
 
     [SerializeField] private int _positionMoves = 0;
     [SerializeField] private PointMove _pointMove;
+
+    [SerializeField] private LoaderManagerScene _loader;
 
     private void Start()
     {
@@ -27,6 +27,7 @@ public class LevelManager : MonoBehaviour
     {
         if (_start == false)
         {
+            GameController.Instance.State = GameController.GameState.Play;
             _enemyManager.MoveEnemy();
             _start = false;
         }
@@ -46,16 +47,26 @@ public class LevelManager : MonoBehaviour
 
     public async UniTask NextMoving()
     {
-        if (!_playerManager.player.namePlatform.Contains("Final") && _enemyManager.EveryoneDiedOnPlatform())
+        var namePlatform = _playerManager.namePlatform;
+        var final = _pointMove[_playerManager.namePlatform].IsFinal;
+        if (_enemyManager.EveryoneDiedOnPlatform())
         {
-            await _playerManager.player.Move(_pointMove[_playerManager.namePlatform].Points);
-            _enemyManager.MoveEnemy();
-        }
+            await _playerManager.player.Move(_pointMove[namePlatform].Points);
 
-        if(_playerManager.player.namePlatform.Contains("Final"))
-        {
-
+            if (final)
+            {
+                GameController.Instance.State = GameController.GameState.Win;
+                _enemyManager.ClearDictionaries();
+                //_loader.NextLevel();
+            }
+            else
+                _enemyManager.MoveEnemy();
         }
+    }
+    public void GameOver()
+    {
+        GameController.Instance.State = GameController.GameState.GameOver;
+        _enemyManager.ClaerLevel();
     }
 }
 

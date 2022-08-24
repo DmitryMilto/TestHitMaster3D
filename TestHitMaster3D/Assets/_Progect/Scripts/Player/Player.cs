@@ -12,6 +12,7 @@ public class Player : MonoBehaviour
     public int speed;
 
     [SerializeField] private Rigidbody _rigidbody;
+    [SerializeField] private Animator _animator;
 
     private void Awake()
     {
@@ -33,6 +34,7 @@ public class Player : MonoBehaviour
     {
         Move(points).Forget();
     }
+    public void StartIdle() => _animator.SetTrigger("Idle");
 
     public async UniTask Move(List<Transform> points, float time = 1f)
     {
@@ -44,5 +46,20 @@ public class Player : MonoBehaviour
             await transform.DOMove(point.position, time).AsyncWaitForCompletion();
         }
         _rigidbody.useGravity = true;
+    }
+    private void Update()
+    {
+        if (GameController.Instance.State == GameController.GameState.Play || GameController.Instance.State == GameController.GameState.Start)
+        {
+            var colliders = Physics.OverlapSphere(this.transform.position, 1.5f);
+            foreach (Collider collider in colliders)
+            {
+                if (collider.GetComponentInParent<Enemy>())
+                {
+                    ServiceLocator.GetService<LevelManager>().GameOver();
+                    _animator.SetTrigger("Die");
+                }
+            }
+        }
     }
 }

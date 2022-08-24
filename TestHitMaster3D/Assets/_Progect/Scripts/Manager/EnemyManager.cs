@@ -7,9 +7,29 @@ using UnityEngine;
 
 public class EnemyManager : MonoBehaviour
 {
-    public int enemyCountry = 0;
+    [SerializeField] private int enemyCountry = 0;
+    [SerializeField] private int enemyDead = 0;
 
     public DictionariesEnemies enemies;
+
+    public Action<int, int> OnStateChange;
+    public int EnemyCountry
+    {
+        get => enemyCountry;
+        set 
+        {
+            enemyCountry = value; 
+        }
+    }
+    public int EnemyDead
+    {
+        get => enemyDead;
+        set 
+        { 
+            enemyDead = value;
+            OnStateChange?.Invoke(enemyCountry, enemyDead);
+        }
+    }
 
     [Button]
     public void MoveEnemy()
@@ -18,31 +38,28 @@ public class EnemyManager : MonoBehaviour
 
         var name = ServiceLocator.GetService<PlayerManager>().namePlatform;
 
-        Debug.LogError($"Enemy: {name}");
-
         foreach (Enemy enemy in enemies[name])
         {
             enemy.Move();
         }
     }
-    //[Button]
-    //private void RunEnemy()
-    //{
-    //    //if (enemis.Count == 0) return;
-    //    //foreach (Enemy enemy in enemis)
-    //    //{
-    //    //    enemy.Run();
-    //    //}
-    //}
-    //[Button]
-    //private void HintEnemy()
-    //{
-    //    //if (enemis.Count == 0) return;
-    //    //foreach (Enemy enemy in enemis)
-    //    //{
-    //    //    enemy.Hint().Forget();
-    //    //}
-    //}
+
+    public void ClaerLevel()
+    {
+        var name = ServiceLocator.GetService<PlayerManager>().namePlatform;
+
+        foreach (Enemy enemy in enemies[name])
+        {
+            enemy.Attact();
+        }
+        ClearDictionaries();
+    }
+    public void ClearDictionaries()
+    {
+        EnemyDead = 0;
+        EnemyCountry = 0;
+        enemies.Clear();
+    }
 
     public void Add(Enemy enemy)
     {
@@ -50,12 +67,12 @@ public class EnemyManager : MonoBehaviour
         {
             enemies.Add(enemy.NamePlatform, new List<Enemy>());
             enemies[enemy.NamePlatform].Add(enemy);
-            enemyCountry++;
+            EnemyCountry++;
         }
         else
         {
             enemies[enemy.NamePlatform].Add(enemy);
-            enemyCountry++;
+            EnemyCountry++;
         }
     }
     public bool EveryoneDiedOnPlatform()

@@ -4,11 +4,10 @@ using UnityEngine;
 using Sirenix.OdinInspector;
 using DG.Tweening;
 using Cysharp.Threading.Tasks;
+using Sirenix.Utilities;
 
 public class Enemy : MonoBehaviour, IMoving, IPaycastDown
 {
-    public float force = 20f;
-    
     [SerializeField] private Player _player;
     [SerializeField] private float _duration = 20f;
 
@@ -16,12 +15,7 @@ public class Enemy : MonoBehaviour, IMoving, IPaycastDown
     {
         this.transform.DOMove(vector, _duration);
     }
-    [Button]
-    private void Damage()
-    {
-        Rigidbody.AddForce(transform.forward * force);
-    }
-    [Button]
+    
     private void MoveToPlayer()
     {
         Move(_player.transform.position);
@@ -38,30 +32,29 @@ public class Enemy : MonoBehaviour, IMoving, IPaycastDown
         }
     }
    
-    public void Run()
+    public void Attact()
     {
-        _animator.SetTrigger("Run");
+        this.transform?.DOKill();
+        _animator.SetTrigger("Attack1");
     }
     public void Idle()
     {
         _animator.SetTrigger("Idle");
-        this.transform.DOKill();
     }
     public async UniTask Hint()
     {
-        Idle();
-        await UniTask.Delay(2);
         _animator.SetTrigger("Hint");
         await UniTask.Delay(2);
         MoveToPlayer();
     }
 
-    public async UniTask Died()
+    public async UniTask Dead()
     {
+        _enemyManager.EnemyDead += 1;
         this.transform.DOKill();
         isDead = true;
         _animator.SetTrigger("Die");
-        this.gameObject.GetComponent<BoxCollider>().enabled = false;
+        DeadCollider();
         await UniTask.Delay(2);
         _meshRenderer.material = _materialDead;
     }
@@ -90,7 +83,6 @@ public class Enemy : MonoBehaviour, IMoving, IPaycastDown
         if (Physics.Raycast(ray, out RaycastHit hit, 100f))
         {
             NamePlatform = hit.collider.name;
-            Debug.Log(NamePlatform);
         }
     }
     private void Awake()
@@ -102,5 +94,62 @@ public class Enemy : MonoBehaviour, IMoving, IPaycastDown
 
         _player = ServiceLocator.GetService<PlayerManager>().player;
     }
+
+    public void SetDamage(string nameTag)
+    {
+        foreach(Collider collider in colliders)
+        {
+            if(collider.name == nameTag)
+            {
+                Tag(collider.name);
+            }
+        }
+    }
+
+    private void Tag(string tag)
+    {
+        switch (tag)
+        {
+            case "Head": Dead().Forget(); break;
+            case "Body": BodyDamage(); break;
+        }
+    }
+
+    private void BodyDamage()
+    {
+        if(_xp == 0)
+        {
+            Dead().Forget();
+        }
+        else
+        {
+            Hint().Forget();
+            _xp -= 2;
+        }
+    }
+
+    private void DeadCollider()
+    {
+        colliders.ForEach(x => x.enabled = false);
+        Rigidbody.useGravity = false;
+    }
     #endregion
+
+    [SerializeField] private float pushPower = 2;
+    public void PushAway(Vector3 pushFrom)
+    {
+        // Если нет прикреплённого Rigidbody2D, то выйдем из функции
+        if (Rigidbody == null || pushPower == 0)
+        {
+            return;
+        }
+
+        // Определяем в каком направлении должен отлететь объект
+        // А также нормализуем этот вектор, чтобы можно было точно указать силу "отскока"
+        var vector = pushFrom - this.transform.position;
+        var pushDirection = vector.normalized;
+
+        // Толкаем объект в нужном направлении с силой pushPower
+        Rigidbody.AddForce(pushDirection * pushPower);
+    }
 }
